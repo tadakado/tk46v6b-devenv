@@ -1,0 +1,22 @@
+[submodule "zmk"]
+	path = zmk
+	url = https://github.com/zmkfirmware/zmk.git
+	shallow = true
+[submodule "zmk-config"]
+	path = zmk-config
+	url = https://github.com/tadakado/tk46v6b.git
+[submodule "zmk-modules/zmk-ir"]
+	path = zmk-modules/zmk-ir
+	url = https://github.com/tadakado/zmk-ir.git
+[submodule "zmk-modules/zmk-rgb-indicator"]
+	path = zmk-modules/zmk-rgb-indicator
+	url = https://github.com/tadakado/zmk-rgb-indicator.git
+[submodule "zmk-modules/zmk-ble-debug"]
+	path = zmk-modules/zmk-ble-debug
+	url = https://github.com/tadakado/zmk-ble-debug.git
+[submodule "zmk-modules/zmk-bootloader-1200"]
+	path = zmk-modules/zmk-bootloader-1200
+	url = https://github.com/tadakado/zmk-bootloader-1200.git
+[submodule "zmk-modules/zmk-ble-mouse-host"]
+	path = zmk-modules/zmk-ble-mouse-host
+	url = https://github.com/tadakado/zmk-ble-mouse-host.git
