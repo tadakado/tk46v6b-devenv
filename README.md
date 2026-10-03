@@ -21,10 +21,9 @@ e.g. `/tmp` fails with "bind source path does not exist".
 ```sh
 git clone --recurse-submodules https://github.com/tadakado/tk46v6b-devenv.git
 cd tk46v6b-devenv
-./bootstrap.sh          # links the local-only Makefile etc. into zmk-config/
 ./0_setup.sh            # colima + bind volumes for zmk-config / zmk-modules
 ./1_start.sh            # start the devcontainer (first run: west init + update)
-cd zmk-config && make build
+make build
 ```
 
 Container image: `docker.io/zmkfirmware/zmk-dev-arm:4.1-branch`
@@ -35,7 +34,7 @@ Container image: `docker.io/zmkfirmware/zmk-dev-arm:4.1-branch`
 | Command | What it does |
 | --- | --- |
 | `./1_start.sh` / `./2_stop.sh` | start / stop the container and colima |
-| `make build` (in `zmk-config/`) | build left + right (also `left`, `right`, `devkit`, `settings_reset`) |
+| `make build` | build left + right (also `left`, `right`, `devkit`, `settings_reset`) |
 | `make flash_left` etc. | copy the UF2 to the bootloader drive (one board at a time) |
 | `./flash.sh` | enter the UF2 bootloader via a 1200-baud touch |
 | `./console.sh` | ZMK log console with auto-reconnect |
@@ -45,8 +44,9 @@ Container image: `docker.io/zmkfirmware/zmk-dev-arm:4.1-branch`
 ## Local-only files
 
 `local/zmk-config/` holds `Makefile` and `*.zmk.yml`. `zmk-config/.gitignore`
-excludes them (the cloud build does not use them), so `bootstrap.sh` symlinks
-them into `zmk-config/`. Edit them in `local/zmk-config/`.
+excludes them (the cloud build does not use them), so the root `Makefile`
+forwards every target to `local/zmk-config/Makefile`, run from `zmk-config/`.
+Run `make ...` from the repo root and edit the real files in `local/zmk-config/`.
 
 ## Updating pinned versions
 
