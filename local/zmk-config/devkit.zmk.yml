@@ -1,0 +1,7 @@
+file_format: "1"
+id: devkit
+name: devkit
+type: shieldurl: https://github.com/tadakado/zmk-config-tk46v6
+#requires: [xiao_ble]
+features:
+  - keys

@@ -1,0 +1,11 @@
+# Cloned by bootstrap.sh -- each has its own git history / upstream.
+/zmk/
+/zmk-config/
+/zmk-modules/
+
+# Build outputs and local-only state
+/firm/
+/.claude/
+*.uf2
+*.zip
+.DS_Store
