@@ -34,6 +34,7 @@ Container image: `docker.io/zmkfirmware/zmk-dev-arm:4.1-branch`
 | Command | What it does |
 | --- | --- |
 | `./1_start.sh` / `./2_stop.sh` | start / stop the container and colima |
+| `make check_env` | verify the container is bound to this checkout (runs before every build) |
 | `make build` | build left + right (also `left`, `right`, `devkit`, `settings_reset`) |
 | `make flash_left` etc. | copy the UF2 to the bootloader drive (one board at a time) |
 | `./flash.sh` | enter the UF2 bootloader via a 1200-baud touch |
@@ -61,6 +62,13 @@ git commit -m "Bump zmk"
 the pinned commit. After bumping `zmk`, re-run `west update` in the container.
 
 ## Troubleshooting
+
+- `make` stops with "Container zmk-dev is bound to another folder": the
+  container's `/workspaces/zmk` mount or the `zmk-config` / `zmk-modules`
+  volumes belong to a different checkout (whichever last ran `0_setup.sh` /
+  `1_start.sh`). Re-bind to this one: `./0_setup.sh && ./1_start.sh`.
+  `0_setup.sh` removes `zmk-dev` first, because `docker volume rm` fails while
+  a container still holds the volumes and the old binding would silently stay.
 
 - `./1_start.sh` fails with a `zmk-dev` name conflict: `docker rm -f zmk-dev`, re-run.
 - "not a valid zephyr module": the bind volumes are stale. Remove every
