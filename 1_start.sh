@@ -3,6 +3,11 @@
 cd `dirname $0`
 PWD=`pwd`
 
+if [ ! -d zmk/app ]; then
+    echo "ERROR: $PWD/zmk is missing. Run: git submodule update --init" >&2
+    exit 1
+fi
+
 colima start
 docker rm -f zmk-dev 2>/dev/null || true
 output=$(devcontainer up --workspace-folder "$PWD/zmk")

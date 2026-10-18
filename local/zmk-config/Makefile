@@ -3,6 +3,36 @@ SHIELDS_DIR = $(CONFIG_DIR)/boards/shields
 
 CONTAINER_NAME = zmk-dev
 
+# Root of this devenv checkout (this Makefile runs from zmk-config/).
+ROOT := $(realpath $(CURDIR)/..)
+
+# --- Environment check ----------------------------------------------------
+# The container's /workspaces/zmk bind mount and the zmk-config / zmk-modules
+# volumes are tied to whichever folder last ran 0_setup.sh / 1_start.sh. If they
+# point at another checkout, `make build` silently builds that checkout's sources
+# (or writes the UF2 there). Refuse to build unless all three point here.
+check_env:
+	@root="$(ROOT)"; err=0; \
+	if ! docker inspect $(CONTAINER_NAME) >/dev/null 2>&1; then \
+		echo "ERROR: container $(CONTAINER_NAME) not found. Run ./1_start.sh first."; exit 1; \
+	fi; \
+	src=$$(docker inspect $(CONTAINER_NAME) --format '{{range .Mounts}}{{if eq .Destination "/workspaces/zmk"}}{{.Source}}{{end}}{{end}}'); \
+	if [ "$$src" != "$$root/zmk" ]; then \
+		echo "ERROR: /workspaces/zmk -> $$src"; echo "       expected   $$root/zmk"; err=1; \
+	fi; \
+	for d in zmk-config zmk-modules; do \
+		vol=$$(docker inspect $(CONTAINER_NAME) --format "{{range .Mounts}}{{if eq .Destination \"/workspaces/$$d\"}}{{.Name}}{{end}}{{end}}"); \
+		dev=$$(docker volume inspect "$$vol" --format '{{.Options.device}}' 2>/dev/null); \
+		if [ "$${dev%/}" != "$$root/$$d" ]; then \
+			echo "ERROR: /workspaces/$$d -> volume '$$vol' -> $$dev"; echo "       expected   $$root/$$d/"; err=1; \
+		fi; \
+	done; \
+	if [ $$err -ne 0 ]; then \
+		echo "Container $(CONTAINER_NAME) is bound to another folder. Fix with:"; \
+		echo "  docker rm -f $(CONTAINER_NAME) && ./0_setup.sh && ./1_start.sh"; \
+		exit 1; \
+	fi
+
 TARGET_NAME = tk46v6
 
 # --- Build dependencies ---------------------------------------------------
@@ -75,7 +105,7 @@ define flash_uf2
 	echo "Done. The board will reboot automatically."
 endef
 
-.PHONY: build left right settings_reset devkit clean \
+.PHONY: check_env build left right settings_reset devkit clean \
         flash_left flash_right flash_devkit flash_settings_reset
 
 build: $(TARGET_LEFT) $(TARGET_RIGHT)
@@ -97,21 +127,21 @@ flash_devkit: $(TARGET_DEVKIT)
 flash_settings_reset: $(TARGET_SETTINGS_RESET)
 	$(call flash_uf2,$(FLASH_SETTINGS_RESET))
 
-$(TARGET_LEFT): $(SRCS_LEFT)
+$(TARGET_LEFT): $(SRCS_LEFT) | check_env
 	$(DOCKER_EXEC) west build -d build/left $(BOARD_ARG) $(SNIPPETS) -- -DSHIELD="$(TARGET_NAME)_left" $(CONFIG_ARG) $(STUDIO_DEFS) $(MODULES_FULL)
 	$(DOCKER_EXEC) cp build/left/zephyr/zmk.uf2 build/$(TARGET_NAME)_left.uf2
 
-$(TARGET_RIGHT): $(SRCS_RIGHT)
+$(TARGET_RIGHT): $(SRCS_RIGHT) | check_env
 	$(DOCKER_EXEC) west build -d build/right $(BOARD_ARG) -- -DSHIELD="$(TARGET_NAME)_right" $(CONFIG_ARG) $(MODULES_RIGHT)
 	$(DOCKER_EXEC) cp build/right/zephyr/zmk.uf2 build/$(TARGET_NAME)_right.uf2
 
-$(TARGET_SETTINGS_RESET):
+$(TARGET_SETTINGS_RESET): | check_env
 	$(DOCKER_EXEC) west build -d build/settings_reset $(BOARD_ARG) -- -DSHIELD=settings_reset $(MODULES_SETTINGS_RESET)
 	$(DOCKER_EXEC) cp build/settings_reset/zephyr/zmk.uf2 build/settings_reset.uf2
 
-$(TARGET_DEVKIT): $(SRCS_DEVKIT)
+$(TARGET_DEVKIT): $(SRCS_DEVKIT) | check_env
 	$(DOCKER_EXEC) west build -d build/devkit $(BOARD_ARG) $(SNIPPETS) -- -DSHIELD=devkit $(CONFIG_ARG) $(STUDIO_DEFS) $(MODULES_FULL)
 	$(DOCKER_EXEC) cp build/devkit/zephyr/zmk.uf2 build/devkit.uf2
 
-clean:
+clean: check_env
 	$(DOCKER_EXEC) rm -rf build
