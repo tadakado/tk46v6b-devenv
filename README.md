@@ -36,8 +36,8 @@ Container image: `docker.io/zmkfirmware/zmk-dev-arm:4.1-branch`
 | `./1_start.sh` / `./2_stop.sh` | start / stop the container and colima |
 | `make check_env` | verify the container is bound to this checkout (runs before every build) |
 | `make build` | build left + right (also `left`, `right`, `devkit`, `settings_reset`) |
-| `make flash_left` etc. | copy the UF2 to the bootloader drive (one board at a time) |
-| `./flash.sh` | enter the UF2 bootloader via a 1200-baud touch |
+| `make flash_left` etc. | copy the UF2 to the bootloader drive (one board at a time), e.g. `./flash.sh && make flash_left` |
+| `./flash.sh` | enter the UF2 bootloader via a 1200-baud touch, then wait for the drive to mount (`FLASH_WAIT`, default 20 s) |
 | `./console.sh` | ZMK log console with auto-reconnect |
 | `./backup_firmware.sh` | snapshot built UF2s with the git revision they came from |
 | `./9_clean_volumes.sh` | remove the container and volumes (sources stay on disk) |
