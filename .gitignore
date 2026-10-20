@@ -4,3 +4,4 @@
 *.uf2
 *.zip
 .DS_Store
+/logs/

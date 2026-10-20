@@ -9,9 +9,28 @@
 # is checked right after every `cat` returns, so a reconnect in progress can't
 # swallow the interrupt.
 #
-# Usage: ./console.sh
+# The log is also appended to a file (tee): by default
+# logs/console-YYYYmmdd-HHMMSS.log next to this script, or the path given as
+# the first argument. Pass "-" to disable saving.
+#
+# Usage: ./console.sh [LOGFILE | -]
 
 should_exit=0
+
+if [[ "$1" == "-" ]]; then
+    logfile=/dev/null
+elif [[ -n "$1" ]]; then
+    logfile=$1
+else
+    logfile="${0:A:h}/logs/console-$(date +%Y%m%d-%H%M%S).log"
+fi
+[[ "$logfile" != /dev/null ]] && mkdir -p "${logfile:h}"
+
+# Print a status line to the terminal and record it in the log file.
+note() {
+    print -- ">>> $*"
+    print -- ">>> $(date '+%F %T') $*" >> "$logfile"
+}
 trap 'should_exit=1' INT TERM
 
 # Find the XIAO's 3-port CDC cluster among all /dev/cu.usbmodem* ports, even
@@ -54,7 +73,8 @@ wait_for_ports() {
     return 1
 }
 
-echo ">>> console: waiting for board... (Ctrl-C to quit)"
+[[ "$logfile" != /dev/null ]] && echo ">>> saving log to $logfile"
+note "console: waiting for board... (Ctrl-C to quit)"
 
 while (( ! should_exit )); do
     ports=("${(@f)$(wait_for_ports)}")
@@ -79,17 +99,17 @@ os.close(fd)
     sleep 0.3
     (( should_exit )) && break
 
-    echo ">>> monitoring $log_cu (115200, Ctrl-C to stop)"
+    note "monitoring $log_cu (115200, Ctrl-C to stop)"
     stty -f "$log_cu" 115200 raw -echo 2>/dev/null || true
-    cat "$log_cu" 2>/dev/null
+    cat "$log_cu" 2>/dev/null | tee -a "$logfile"
     # cat returns either because the port disappeared (board rebooted -- I/O
     # error/EOF) or because we were interrupted (Ctrl-C, which also set
     # should_exit via the trap). Either way, loop back around: should_exit
     # breaks out for good, otherwise we wait for the port to come back.
 
     (( should_exit )) && break
-    echo ">>> port lost -- waiting for the board to come back..."
+    note "port lost -- waiting for the board to come back..."
     sleep 0.5
 done
 
-echo ">>> console: stopped"
+note "console: stopped"
