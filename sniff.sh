@@ -101,21 +101,29 @@ newest_console_log() {
 }
 
 flash_dongle() {
-    local hex zip
-    hex=$(find ~/.nrfutil ~/Downloads -name 'sniffer_nrf52840dongle_nrf52840_*.hex' 2>/dev/null | sort | tail -1)
-    if [[ -z "$hex" ]]; then
-        echo "sniffer_nrf52840dongle_nrf52840_*.hex not found under ~/.nrfutil or ~/Downloads." >&2
+    # nrfutil ble-sniffer ships the firmware under <nrfutil home>/share/
+    # nrfutil-ble-sniffer/firmware; fall back to an unzipped nRF Sniffer package.
+    local fwdirs=(~/.nrfutil/share/nrfutil-ble-sniffer/firmware ~/Downloads) zip hex f
+    echo ">>> firmware files:"
+    ls -la ${fwdirs[1]} 2>/dev/null
+    zip=$(find $fwdirs -iname '*sniffer*52840dongle*.zip' 2>/dev/null | sort | tail -1)
+    hex=$(find $fwdirs -iname '*sniffer*52840dongle*.hex' 2>/dev/null | sort | tail -1)
+    if [[ -z "$zip" && -z "$hex" ]]; then
+        echo "no nRF52840 Dongle sniffer firmware found in: $fwdirs" >&2
         echo "Download the nRF Sniffer for Bluetooth LE package from Nordic, unzip it into ~/Downloads, and retry." >&2
         return 1
     fi
-    echo ">>> firmware: $hex"
-    if ! nrfutil list 2>/dev/null | grep -q '^nrf5sdk-tools'; then
-        echo ">>> installing nrfutil nrf5sdk-tools (for 'nrfutil pkg generate')"
-        nrfutil install nrf5sdk-tools || return 1
+    if [[ -z "$zip" ]]; then
+        echo ">>> firmware (hex): $hex -> building a DFU package"
+        if ! nrfutil list 2>/dev/null | grep -q '^nrf5sdk-tools'; then
+            echo ">>> installing nrfutil nrf5sdk-tools (for 'nrfutil pkg generate')"
+            nrfutil install nrf5sdk-tools || return 1
+        fi
+        zip=logs/sniffer-dongle-dfu.zip
+        nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 \
+            --application "$hex" "$zip" || return 1
     fi
-    zip=logs/sniffer-dongle-dfu.zip
-    nrfutil pkg generate --hw-version 52 --sd-req 0x00 --application-version 1 \
-        --application "$hex" "$zip" || return 1
+    echo ">>> firmware (DFU zip): $zip"
     echo ">>> press the dongle's RESET (side) button: the red LED pulses = bootloader."
     echo -n ">>> then press Enter... "; read -r
     nrfutil device program --firmware "$zip" --traits nordicDfu || return 1
