@@ -137,8 +137,11 @@ capture() {
         echo "no nRF Sniffer interface found (./sniff.sh probe; flash the dongle?)" >&2; return 1
     fi
     if [[ -z "$addr" && -n "$clog" ]]; then
-        addr=$(sed 's/\x1b\[[0-9;]*m//g' "$clog" | grep 'ble_conn: host .* connected' |
-               sed -n 's/.* local \([0-9A-F:]*\) (\([a-z]*\)).*/\1 \2/p' | tail -1)
+        # newest log first, latest line in it first
+        addr=$(ls -t logs/console-*.log | while read -r f; do
+                   sed 's/\x1b\[[0-9;]*m//g' "$f" | grep 'ble_conn: host .* connected' |
+                   sed -n 's/.* local \([0-9A-F:]*\) (\([a-z]*\)).*/\1 \2/p' | tail -1
+               done | head -1)
     fi
     if [[ -z "$ltk" && -n "$clog" ]]; then
         ltk=$(ls -t logs/console-*.log | xargs cat | sed 's/\x1b\[[0-9;]*m//g' |
