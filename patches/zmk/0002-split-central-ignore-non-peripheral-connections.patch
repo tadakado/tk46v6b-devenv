@@ -1,0 +1,28 @@
+split: central: Ignore central connections that aren't peripherals
+
+split_central_connected() handles every connection in the central role.
+When something else on the device connects as central (e.g. a module
+that reconnects a BLE mouse), each failed attempt is logged as
+"<err> zmk: Failed to connect to <mouse>" and runs the peripheral slot
+release / start_scanning() path, and a successful one logs
+"No peripheral state found for connection".
+
+Return early for connections that have no peripheral slot.
+
+--- a/app/src/split/bluetooth/central.c
++++ b/app/src/split/bluetooth/central.c
+@@ -941,6 +941,14 @@
+         return;
+     }
+ 
++    // Only handle our own peripheral links. Other central-role connections (e.g. an
++    // app/module connecting to a BLE mouse) have no slot: logging their failures as
++    // split errors and running the slot/scan handling for them is just noise.
++    if (peripheral_slot_index_for_conn(conn) < 0) {
++        LOG_DBG("SKIPPING NON-PERIPHERAL CONNECTION %s", addr);
++        return;
++    }
++
+     if (conn_err) {
+         LOG_ERR("Failed to connect to %s (%u)", addr, conn_err);
+ 
