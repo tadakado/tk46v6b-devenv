@@ -49,6 +49,26 @@ excludes them (the cloud build does not use them), so the root `Makefile`
 forwards every target to `local/zmk-config/Makefile`, run from `zmk-config/`.
 Run `make ...` from the repo root and edit the real files in `local/zmk-config/`.
 
+## Local Zephyr patches
+
+`patches/zephyr/*.patch` are applied to the Zephyr tree inside the container
+(the `zmk-zephyr` docker volume, fetched by `west update`, not part of this
+repo). `make` refuses to build unless they are all applied.
+
+```sh
+./zephyr_patch.sh status          # applied / not-applied / CONFLICT per patch
+./zephyr_patch.sh apply           # then rebuild: make -B left (Zephyr is not a make dependency)
+./zephyr_patch.sh revert
+```
+
+- `0001-llcp-reset-incompat-after-rejected-peripheral-cpr`: fixes ~2.5 s
+  host-link drops with HCI reason 0x24 (seen with macOS) when LE Ping is on.
+  The firmware keeps LE Ping at its default (on) and relies on this patch.
+- The patches survive container restarts / `0_setup.sh` / `9_clean_volumes.sh`,
+  but not `docker volume rm zmk-zephyr`; a `west update` that changes the Zephyr
+  revision may undo them -- `check_env` will tell.
+- GitHub Actions builds of tk46v6b use **unpatched** Zephyr.
+
 ## Updating pinned versions
 
 Each submodule is pinned to a commit. After pulling/committing inside one:

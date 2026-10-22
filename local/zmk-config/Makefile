@@ -32,6 +32,12 @@ check_env:
 		echo "  docker rm -f $(CONTAINER_NAME) && ./0_setup.sh && ./1_start.sh"; \
 		exit 1; \
 	fi
+	@# The firmware relies on the local Zephyr patches (patches/zephyr), e.g. the
+	@# LLCP fix that LE Ping needs. Refuse to build an unpatched Zephyr.
+	@if ! "$(ROOT)/zephyr_patch.sh" check; then \
+		echo "Apply them with: ./zephyr_patch.sh apply && make -B <target>"; \
+		exit 1; \
+	fi
 
 TARGET_NAME = tk46v6
 
