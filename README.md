@@ -65,7 +65,6 @@ modified in `git status`). `make` refuses to build unless they are all applied.
 - `zephyr/0001-llcp-reset-incompat-after-rejected-peripheral-cpr`: fixes ~2.5 s
   host-link drops with HCI reason 0x24 (seen with macOS) when LE Ping is on.
   The firmware keeps LE Ping at its default (on) and relies on this patch.
-  Upstream report drafts: `patches/zephyr/upstream/`.
 - `zmk/0001-split-central-retry-scan-after-start-failure`: the split central
   stopped scanning for good when a scan start failed (e.g. `-EPERM` while the
   mouse host was initiating), so the right half never reconnected until reboot.
