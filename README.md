@@ -69,6 +69,9 @@ modified in `git status`). `make` refuses to build unless they are all applied.
 - `zmk/0001-split-central-retry-scan-after-start-failure`: the split central
   stopped scanning for good when a scan start failed (e.g. `-EPERM` while the
   mouse host was initiating), so the right half never reconnected until reboot.
+- `zmk/0002-split-central-ignore-non-peripheral-connections`: the split
+  central no longer handles/logs connections that aren't its peripherals
+  (no more `<err> zmk: Failed to connect to <mouse>` every 3 s).
 - The Zephyr patch survives container restarts / `0_setup.sh` /
   `9_clean_volumes.sh`, but not `docker volume rm zmk-zephyr`; a `west update`
   or submodule update that changes the pinned revision may undo either --
