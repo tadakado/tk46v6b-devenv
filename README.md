@@ -49,25 +49,31 @@ excludes them (the cloud build does not use them), so the root `Makefile`
 forwards every target to `local/zmk-config/Makefile`, run from `zmk-config/`.
 Run `make ...` from the repo root and edit the real files in `local/zmk-config/`.
 
-## Local Zephyr patches
+## Local patches (Zephyr / ZMK)
 
 `patches/zephyr/*.patch` are applied to the Zephyr tree inside the container
 (the `zmk-zephyr` docker volume, fetched by `west update`, not part of this
-repo). `make` refuses to build unless they are all applied.
+repo); `patches/zmk/*.patch` to the `zmk/` submodule (it then shows as
+modified in `git status`). `make` refuses to build unless they are all applied.
 
 ```sh
-./zephyr_patch.sh status          # applied / not-applied / CONFLICT per patch
-./zephyr_patch.sh apply           # then rebuild: make -B left (Zephyr is not a make dependency)
-./zephyr_patch.sh revert
+./local_patches.sh status        # applied / not-applied / CONFLICT per patch
+./local_patches.sh apply         # then rebuild: make -B left (not make dependencies)
+./local_patches.sh revert
 ```
 
-- `0001-llcp-reset-incompat-after-rejected-peripheral-cpr`: fixes ~2.5 s
+- `zephyr/0001-llcp-reset-incompat-after-rejected-peripheral-cpr`: fixes ~2.5 s
   host-link drops with HCI reason 0x24 (seen with macOS) when LE Ping is on.
   The firmware keeps LE Ping at its default (on) and relies on this patch.
-- The patches survive container restarts / `0_setup.sh` / `9_clean_volumes.sh`,
-  but not `docker volume rm zmk-zephyr`; a `west update` that changes the Zephyr
-  revision may undo them -- `check_env` will tell.
-- GitHub Actions builds of tk46v6b use **unpatched** Zephyr.
+  Upstream report drafts: `patches/zephyr/upstream/`.
+- `zmk/0001-split-central-retry-scan-after-start-failure`: the split central
+  stopped scanning for good when a scan start failed (e.g. `-EPERM` while the
+  mouse host was initiating), so the right half never reconnected until reboot.
+- The Zephyr patch survives container restarts / `0_setup.sh` /
+  `9_clean_volumes.sh`, but not `docker volume rm zmk-zephyr`; a `west update`
+  or submodule update that changes the pinned revision may undo either --
+  `check_env` will tell.
+- GitHub Actions builds of tk46v6b use **unpatched** sources.
 
 ## Updating pinned versions
 
