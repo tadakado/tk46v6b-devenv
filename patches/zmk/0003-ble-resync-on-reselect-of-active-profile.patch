@@ -1,0 +1,32 @@
+ble: Resync when the active profile is selected again
+
+zmk_ble_prof_select() returns early when the index is already active, and
+update_advertising() decides only from the cached advertising_status. If
+that cache disagrees with the controller (e.g. an advertising start that
+failed), nothing ever restarts advertising and pressing the profile key
+again cannot recover.
+
+On a re-select of the active profile that is not connected, stop
+advertising, reset the cache and run update_advertising() again. Always
+re-raise the profile changed event so indicators redraw.
+
+--- a/app/src/ble.c
++++ b/app/src/ble.c
+@@ -291,6 +291,17 @@ int zmk_ble_prof_select(uint8_t index) {
+ 
+     LOG_DBG("profile %d", index);
+     if (active_profile == index) {
++        // Re-selecting the active profile resyncs instead of being a no-op: if the
++        // host is not connected, advertising_status may not match the controller
++        // (e.g. a failed start), and update_advertising() trusts it. Restart
++        // advertising from scratch, and re-raise the event so indicators redraw.
++        if (!zmk_ble_active_profile_is_connected()) {
++            LOG_INF("profile %d reselected while disconnected, restarting advertising", index);
++            bt_le_adv_stop();
++            advertising_status = ZMK_ADV_NONE;
++            update_advertising();
++        }
++        raise_profile_changed_event();
+         return 0;
+     }
+ 
