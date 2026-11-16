@@ -112,7 +112,8 @@ define flash_uf2
 endef
 
 .PHONY: check_env build left right settings_reset devkit clean \
-        flash_left flash_right flash_devkit flash_settings_reset
+        flash_left flash_right flash_devkit flash_settings_reset \
+        flash_left_serial flash_right_serial flash_devkit_serial flash_settings_reset_serial
 
 build: $(TARGET_LEFT) $(TARGET_RIGHT)
 left: $(TARGET_LEFT)
@@ -132,6 +133,22 @@ flash_devkit: $(TARGET_DEVKIT)
 
 flash_settings_reset: $(TARGET_SETTINGS_RESET)
 	$(call flash_uf2,$(FLASH_SETTINGS_RESET))
+
+# Same, but over USB serial (serial DFU) instead of the UF2 drive -- for Macs that
+# block USB mass storage. Does the 1200bps touch itself: no ./flash.sh needed.
+FLASH_SERIAL = "$(ROOT)/flash_serial.sh"
+
+flash_left_serial: $(TARGET_LEFT)
+	$(FLASH_SERIAL) $(TARGET_LEFT:.uf2=.hex)
+
+flash_right_serial: $(TARGET_RIGHT)
+	$(FLASH_SERIAL) $(TARGET_RIGHT:.uf2=.hex)
+
+flash_devkit_serial: $(TARGET_DEVKIT)
+	$(FLASH_SERIAL) $(TARGET_DEVKIT:.uf2=.hex)
+
+flash_settings_reset_serial: $(TARGET_SETTINGS_RESET)
+	$(FLASH_SERIAL) $(TARGET_SETTINGS_RESET:.uf2=.hex)
 
 $(TARGET_LEFT): $(SRCS_LEFT) | check_env
 	$(DOCKER_EXEC) west build -d build/left $(BOARD_ARG) $(SNIPPETS) -- -DSHIELD="$(TARGET_NAME)_left" $(CONFIG_ARG) $(STUDIO_DEFS) $(MODULES_FULL)

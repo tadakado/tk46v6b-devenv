@@ -38,6 +38,7 @@ Container image: `docker.io/zmkfirmware/zmk-dev-arm:4.1-branch`
 | `make build` | build left + right (also `left`, `right`, `devkit`, `settings_reset`) |
 | `make flash_left` etc. | copy the UF2 to the bootloader drive (one board at a time), e.g. `./flash.sh && make flash_left` |
 | `./flash.sh` | enter the UF2 bootloader via a 1200-baud touch, then wait for the drive to mount (`FLASH_WAIT`, default 20 s) |
+| `make flash_left_serial` etc. | flash over USB serial (serial DFU) instead of the UF2 drive, for Macs that block USB mass storage; does the 1200-baud touch itself (no `./flash.sh`). Needs `pip3 install --user adafruit-nrfutil`. Picks the board by port count (left 3, right 1) so the halves can't be mixed up |
 | `./console.sh` | ZMK log console with auto-reconnect |
 | `./backup_firmware.sh` | snapshot built UF2s with the git revision they came from |
 | `./9_clean_volumes.sh` | remove the container and volumes (sources stay on disk) |
