@@ -113,7 +113,7 @@ endef
 
 .PHONY: check_env build left right settings_reset devkit clean \
         flash_left flash_right flash_devkit flash_settings_reset \
-        flash_left_serial flash_right_serial flash_devkit_serial flash_settings_reset_serial
+        flash_left_serial flash_right_serial flash_devkit_serial flash_settings_reset_serial release
 
 build: $(TARGET_LEFT) $(TARGET_RIGHT)
 left: $(TARGET_LEFT)
@@ -139,16 +139,22 @@ flash_settings_reset: $(TARGET_SETTINGS_RESET)
 FLASH_SERIAL = "$(ROOT)/flash_serial.sh"
 
 flash_left_serial: $(TARGET_LEFT)
-	$(FLASH_SERIAL) $(TARGET_LEFT:.uf2=.hex)
+	$(FLASH_SERIAL) left $(TARGET_LEFT:.uf2=.hex)
 
 flash_right_serial: $(TARGET_RIGHT)
-	$(FLASH_SERIAL) $(TARGET_RIGHT:.uf2=.hex)
+	$(FLASH_SERIAL) right $(TARGET_RIGHT:.uf2=.hex)
 
 flash_devkit_serial: $(TARGET_DEVKIT)
-	$(FLASH_SERIAL) $(TARGET_DEVKIT:.uf2=.hex)
+	$(FLASH_SERIAL) devkit $(TARGET_DEVKIT:.uf2=.hex)
 
 flash_settings_reset_serial: $(TARGET_SETTINGS_RESET)
-	$(FLASH_SERIAL) $(TARGET_SETTINGS_RESET:.uf2=.hex)
+	$(FLASH_SERIAL) reset $(TARGET_SETTINGS_RESET:.uf2=.hex)
+
+# Publish the firmware built here (with the local patches) as a GitHub Release of
+# tk46v6b-devenv, as serial-DFU packages + UF2s, so another Mac can flash it with
+# just flash_serial.sh (no build environment). Needs gh and adafruit-nrfutil.
+release: $(TARGET_LEFT) $(TARGET_RIGHT) $(TARGET_SETTINGS_RESET)
+	"$(ROOT)/release_firmware.sh"
 
 $(TARGET_LEFT): $(SRCS_LEFT) | check_env
 	$(DOCKER_EXEC) west build -d build/left $(BOARD_ARG) $(SNIPPETS) -- -DSHIELD="$(TARGET_NAME)_left" $(CONFIG_ARG) $(STUDIO_DEFS) $(MODULES_FULL)

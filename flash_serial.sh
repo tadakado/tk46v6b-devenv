@@ -1,25 +1,45 @@
 #!/bin/zsh
-# Flash a ZMK .hex to the XIAO nRF52840 entirely over USB serial (no UF2 drive),
+# Flash ZMK firmware to the XIAO nRF52840 entirely over USB serial (no UF2 drive),
 # for Macs where USB mass storage is blocked.
 #
-#   1. Wrap the .hex into a legacy-DFU package (adafruit-nrfutil dfu genpkg).
+#   1. Take a serial-DFU package (.zip), or wrap a .hex into one
+#      (adafruit-nrfutil dfu genpkg).
 #   2. 1200bps touch on the board's first CDC port (zmk-bootloader-1200), which
 #      reboots it into the Adafruit bootloader, the same as flash.sh.
 #   3. Wait for the bootloader's CDC port and run serial DFU on it.
 #
-# Needs adafruit-nrfutil on the Mac:  pip3 install --user adafruit-nrfutil
+# Works on its own (no build environment needed), e.g. on another Mac with a
+# package downloaded from this repo's GitHub Releases (see release_firmware.sh).
+#
+# Needs adafruit-nrfutil:  pip3 install --user adafruit-nrfutil
 #   (or: pipx install adafruit-nrfutil)
 #
-# Usage: ./flash_serial.sh path/to/zmk.hex      (FLASH_WAIT=30 to wait longer)
+# Usage: ./flash_serial.sh [left|right|devkit|reset] FILE.zip|FILE.hex
+#   The side picks which plugged-in board to flash (see below). Without it, it is
+#   guessed from the file name: *right* -> right, *settings_reset* -> reset,
+#   anything else -> left.
+#   FLASH_WAIT=30 ./flash_serial.sh ...   to wait longer for the bootloader.
 
 set -e
 
-hex=$1
 FLASH_WAIT=${FLASH_WAIT:-20}
 
-if [[ -z "$hex" || ! -f "$hex" ]]; then
-    echo "usage: $0 path/to/zmk.hex" >&2
+side=""
+case "$1" in
+    left|right|devkit|reset) side=$1; shift ;;
+esac
+file=$1
+
+if [[ -z "$file" || ! -f "$file" ]]; then
+    echo "usage: $0 [left|right|devkit|reset] FILE.zip|FILE.hex" >&2
     exit 1
+fi
+if [[ -z "$side" ]]; then
+    case "${file:t}:$file" in
+        *settings_reset*) side=reset ;;
+        *right*)          side=right ;;
+        *)                side=left ;;
+    esac
 fi
 if ! command -v adafruit-nrfutil >/dev/null; then
     echo "adafruit-nrfutil not found. Install it with: pip3 install --user adafruit-nrfutil" >&2
@@ -27,10 +47,17 @@ if ! command -v adafruit-nrfutil >/dev/null; then
     exit 1
 fi
 
-pkg="${hex:r}-dfu.zip"
-echo ">>> packaging $hex -> $pkg"
-# 0x0052: nRF52 device type; 0xFFFE: don't check the SoftDevice version.
-adafruit-nrfutil dfu genpkg --dev-type 0x0052 --sd-req 0xFFFE --application "$hex" "$pkg" >/dev/null
+case "$file" in
+    *.zip) pkg=$file ;;
+    *.hex)
+        pkg="${file:r}-dfu.zip"
+        echo ">>> packaging $file -> $pkg"
+        # 0x0052: nRF52 device type; 0xFFFE: don't check the SoftDevice version.
+        adafruit-nrfutil dfu genpkg --dev-type 0x0052 --sd-req 0xFFFE --application "$file" "$pkg" >/dev/null
+        ;;
+    *) echo "expected a .zip (DFU package) or .hex: $file" >&2; exit 1 ;;
+esac
+echo ">>> target: $side half ($pkg)"
 
 # Find the target board's port prefix (a board's ports share a numeric prefix).
 # Running ZMK, the left half / devkit expose 3 CDC ports (bootloader watcher,
@@ -41,10 +68,10 @@ adafruit-nrfutil dfu genpkg --dev-type 0x0052 --sd-req 0xFFFE --application "$he
 #   left / devkit:  prefers a multi-port board; a lone single-port board is
 #           accepted with a warning (e.g. the left half after settings_reset)
 #   settings_reset:  needs exactly one board plugged in
-case "$hex" in
-    */build/right/*)          want=single ;;
-    */build/settings_reset/*) want=only ;;
-    *)                        want=multi ;;
+case $side in
+    right) want=single ;;
+    reset) want=only ;;
+    *)     want=multi ;;
 esac
 
 ports_all=(/dev/cu.usbmodem*(N))
