@@ -11,8 +11,9 @@
 # Works on its own (no build environment needed), e.g. on another Mac with a
 # package downloaded from this repo's GitHub Releases (see release_firmware.sh).
 #
-# Needs adafruit-nrfutil:  pip3 install --user adafruit-nrfutil
-#   (or: pipx install adafruit-nrfutil)
+# Needs adafruit-nrfutil, installed as a standalone tool (Homebrew's Python
+# refuses a plain pip install):  brew install pipx && pipx install adafruit-nrfutil
+#   (or with uv: uv tool install adafruit-nrfutil)
 #
 # Usage: ./flash_serial.sh [left|right|devkit|reset] FILE.zip|FILE.hex
 #   The side picks which plugged-in board to flash (see below). Without it, it is
@@ -42,8 +43,9 @@ if [[ -z "$side" ]]; then
     esac
 fi
 if ! command -v adafruit-nrfutil >/dev/null; then
-    echo "adafruit-nrfutil not found. Install it with: pip3 install --user adafruit-nrfutil" >&2
-    echo "(and make sure its bin dir, e.g. ~/Library/Python/3.x/bin, is on PATH)" >&2
+    echo "adafruit-nrfutil not found. Install it with:" >&2
+    echo "    brew install pipx && pipx install adafruit-nrfutil && pipx ensurepath" >&2
+    echo "(then open a new terminal so ~/.local/bin is on PATH)" >&2
     exit 1
 fi
 

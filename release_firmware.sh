@@ -72,10 +72,10 @@ cp flash_serial.sh $out/
         print "  $p  sha256:$(shasum -a 256 $p | cut -c1-12)"
     done
     print
-    print "Flash over USB serial (no UF2 drive needed; pip3 install --user adafruit-nrfutil):"
-    print "  ./flash_serial.sh left  tk46v6_left-dfu.zip     # only the left half plugged in"
-    print "  ./flash_serial.sh right tk46v6_right-dfu.zip    # only the right half plugged in"
-    print "  ./flash_serial.sh reset settings_reset-dfu.zip  # clears bonds/settings"
+    print "Flash over USB serial (no UF2 drive needed). Once: brew install pipx && pipx install adafruit-nrfutil"
+    print "  zsh flash_serial.sh left  tk46v6_left-dfu.zip     # only the left half plugged in"
+    print "  zsh flash_serial.sh right tk46v6_right-dfu.zip    # only the right half plugged in"
+    print "  zsh flash_serial.sh reset settings_reset-dfu.zip  # clears bonds/settings"
     print "Or copy the .uf2 to the XIAO's UF2 drive (double-tap RESET)."
 } > $out/INFO.txt
 
