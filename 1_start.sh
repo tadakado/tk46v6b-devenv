@@ -17,7 +17,20 @@ if [ "$current_name" != "zmk-dev" ]; then
     docker rename "$container_id" zmk-dev
 fi
 
+# git in the container runs as root, but the bind-mounted /workspaces/zmk tree
+# (and anything west clones into it) belongs to the host user, so git refuses it
+# as "dubious ownership". /root is a volume, so this setting persists.
+docker exec zmk-dev git config --global --get-all safe.directory 2>/dev/null | grep -qx '\*' \
+    || docker exec zmk-dev git config --global --add safe.directory '*'
+
 if ! docker exec zmk-dev test -d /workspaces/zmk/.west; then
     echo "west workspace not found, running west init + west update..."
-    docker exec -w /workspaces/zmk zmk-dev bash -c "west init -l app && west update"
+    # Skip the "optional" group (tflite-micro, thrift, ...): ZMK doesn't use it,
+    # and it would be cloned into the bind mount rather than a volume.
+    docker exec -w /workspaces/zmk zmk-dev bash -c \
+        "west init -l app && west config manifest.group-filter -- -optional && west update"
 fi
+
+# Apply the local Zephyr / ZMK patches (patches/). Idempotent: already-applied
+# patches are skipped, so this also covers a fresh clone or a new west update.
+./local_patches.sh apply
